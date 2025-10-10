@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Sprout, Wheat, Droplets, Bug } from "lucide-react";
 
 interface TipsSectionProps {
-  language: "en" | "hi";
+  language: "en" | "hi" | "gu";
 }
 
 export const TipsSection = ({ language }: TipsSectionProps) => {
@@ -57,6 +57,32 @@ export const TipsSection = ({ language }: TipsSectionProps) => {
           icon: Bug,
           title: "कीट नियंत्रण",
           description: "प्राकृतिक और जैविक कीट प्रबंधन तकनीक।",
+        },
+      ],
+    },
+    gu: {
+      title: "ખેતી ટીપ્સ",
+      readMore: "વધુ વાંચો",
+      tips: [
+        {
+          icon: Sprout,
+          title: "પાક પરિભ્રમણ",
+          description: "દરેક મોસમમાં પાકોને ફેરવીને જમીનના સ્વાસ્થ્યમાં સુધારો કરો.",
+        },
+        {
+          icon: Wheat,
+          title: "ઘઉંની વાવણી",
+          description: "શિયાળુ ઘઉંની ખેતી અને સમય માટે શ્રેષ્ઠ પ્રથાઓ.",
+        },
+        {
+          icon: Droplets,
+          title: "સિંચાઈ ટીપ્સ",
+          description: "વધુ સારી ઉપજ માટે કાર્યક્ષમ પાણી વ્યવસ્થાપન.",
+        },
+        {
+          icon: Bug,
+          title: "જીવાત નિયંત્રણ",
+          description: "કુદરતી અને કાર્બનિક જીવાત વ્યવસ્થાપન તકનીકો.",
         },
       ],
     },

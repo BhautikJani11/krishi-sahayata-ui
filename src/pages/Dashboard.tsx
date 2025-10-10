@@ -7,7 +7,7 @@ import { SchemesSection } from "@/components/dashboard/SchemesSection";
 import { TipsSection } from "@/components/dashboard/TipsSection";
 
 const Dashboard = () => {
-  const [language, setLanguage] = useState<"en" | "hi">("en");
+  const [language, setLanguage] = useState<"en" | "hi" | "gu">("en");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (

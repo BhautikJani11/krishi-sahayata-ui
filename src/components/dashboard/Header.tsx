@@ -3,8 +3,8 @@ import { LogOut, Menu, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface HeaderProps {
-  language: "en" | "hi";
-  setLanguage: (lang: "en" | "hi") => void;
+  language: "en" | "hi" | "gu";
+  setLanguage: (lang: "en" | "hi" | "gu") => void;
   setSidebarOpen: (open: boolean) => void;
 }
 
@@ -13,10 +13,17 @@ export const Header = ({ language, setLanguage, setSidebarOpen }: HeaderProps) =
     en: {
       welcome: "Welcome back, Farmer!",
       logout: "Logout",
+      language: "EN",
     },
     hi: {
       welcome: "स्वागत है, किसान!",
       logout: "लॉग आउट",
+      language: "हिं",
+    },
+    gu: {
+      welcome: "સ્વાગત છે, ખેડૂત!",
+      logout: "લૉગ આઉટ",
+      language: "ગુ",
     },
   };
 
@@ -43,10 +50,13 @@ export const Header = ({ language, setLanguage, setSidebarOpen }: HeaderProps) =
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setLanguage(language === "en" ? "hi" : "en")}
+            onClick={() => {
+              const nextLang = language === "en" ? "hi" : language === "hi" ? "gu" : "en";
+              setLanguage(nextLang);
+            }}
             className="font-medium"
           >
-            {language === "en" ? "हिं" : "EN"}
+            {t.language}
           </Button>
 
           <Avatar className="h-8 w-8 md:h-10 md:w-10">

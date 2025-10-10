@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { RefreshCw, CloudRain, AlertTriangle, Sun } from "lucide-react";
 
 interface WeatherSectionProps {
-  language: "en" | "hi";
+  language: "en" | "hi" | "gu";
 }
 
 export const WeatherSection = ({ language }: WeatherSectionProps) => {
@@ -25,6 +25,15 @@ export const WeatherSection = ({ language }: WeatherSectionProps) => {
         { severity: "high", message: "अगले 48 घंटों में भारी बारिश की उम्मीद", icon: CloudRain },
         { severity: "medium", message: "कल तेज हवाओं की चेतावनी", icon: AlertTriangle },
         { severity: "low", message: "अगले 5 दिनों के लिए धूप का मौसम", icon: Sun },
+      ],
+    },
+    gu: {
+      title: "હવામાન ચેતવણીઓ",
+      refresh: "રિફ્રેશ",
+      alerts: [
+        { severity: "high", message: "આગામી 48 કલાકમાં ભારે વરસાદની અપેક્ષા", icon: CloudRain },
+        { severity: "medium", message: "આવતીકાલ માટે તેજ પવનની ચેતવણી", icon: AlertTriangle },
+        { severity: "low", message: "આગામી 5 દિવસ માટે સની હવામાન", icon: Sun },
       ],
     },
   };

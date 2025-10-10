@@ -17,7 +17,7 @@ import {
 interface SidebarProps {
   open: boolean;
   setOpen: (open: boolean) => void;
-  language: "en" | "hi";
+  language: "en" | "hi" | "gu";
 }
 
 const menuItems = {
@@ -43,9 +43,20 @@ const menuItems = {
     { icon: Sprout, label: "फसल जानकारी", active: false },
     { icon: Bell, label: "सूचनाएं", active: false },
   ],
+  gu: [
+    { icon: Home, label: "હોમ", active: true },
+    { icon: User, label: "પ્રોફાઇલ", active: false },
+    { icon: MessageSquare, label: "ચેટ", active: false },
+    { icon: CloudRain, label: "હવામાન ચેતવણીઓ", active: false },
+    { icon: Tractor, label: "સાધનો ભાડે", active: false },
+    { icon: FileText, label: "સરકારી યોજનાઓ", active: false },
+    { icon: Lightbulb, label: "ખેતી ટિપ્સ", active: false },
+    { icon: Sprout, label: "પાક માહિતી", active: false },
+    { icon: Bell, label: "સૂચનાઓ", active: false },
+  ],
 };
 
-const SidebarContent = ({ language }: { language: "en" | "hi" }) => {
+const SidebarContent = ({ language }: { language: "en" | "hi" | "gu" }) => {
   const items = menuItems[language];
 
   return (
@@ -85,7 +96,7 @@ export const Sidebar = ({ open, setOpen, language }: SidebarProps) => {
         <SheetContent side="left" className="w-64 p-0">
           <div className="flex items-center justify-between p-4 border-b">
             <h2 className="font-semibold">
-              {language === "en" ? "Menu" : "मेनू"}
+              {language === "en" ? "Menu" : language === "hi" ? "मेनू" : "મેનૂ"}
             </h2>
             <Button
               variant="ghost"

@@ -9,7 +9,7 @@ import {
 import { ExternalLink } from "lucide-react";
 
 interface SchemesSectionProps {
-  language: "en" | "hi";
+  language: "en" | "hi" | "gu";
 }
 
 export const SchemesSection = ({ language }: SchemesSectionProps) => {
@@ -47,6 +47,24 @@ export const SchemesSection = ({ language }: SchemesSectionProps) => {
         {
           name: "प्रधानमंत्री फसल बीमा योजना",
           description: "प्राकृतिक आपदाओं के कारण फसल नुकसान के खिलाफ वित्तीय सहायता प्रदान करने वाली फसल बीमा योजना।",
+        },
+      ],
+    },
+    gu: {
+      title: "સરકારી યોજનાઓ",
+      apply: "હમણાં અરજી કરો",
+      schemes: [
+        {
+          name: "પીએમ-કિસાન",
+          description: "ખેડૂત પરિવારોને દર વર્ષે ₹6,000 ની સીધી આવક સહાય. ₹2,000 ની ત્રણ હપ્તા.",
+        },
+        {
+          name: "માટી આરોગ્ય કાર્ડ યોજના",
+          description: "ખાતરના સંતુલિત ઉપયોગ દ્વારા ખેડૂતોને ઉત્પાદકતા સુધારવામાં મદદ કરવા માટે મફત માટી પરીક્ષણ.",
+        },
+        {
+          name: "પ્રધાનમંત્રી ફસલ વીમા યોજના",
+          description: "કુદરતી આફતોને કારણે પાકના નુકસાન સામે નાણાકીય સહાય પૂરી પાડતી પાક વીમા યોજના.",
         },
       ],
     },
