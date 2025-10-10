@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -6,13 +7,39 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Loader2 } from "lucide-react";
+import { apiClient, type Scheme } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface SchemesSectionProps {
   language: "en" | "hi" | "gu";
 }
 
 export const SchemesSection = ({ language }: SchemesSectionProps) => {
+  const [schemes, setSchemes] = useState<Scheme[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const fetchSchemes = async () => {
+    setLoading(true);
+    try {
+      const data = await apiClient.getSchemes(language, true);
+      setSchemes(data);
+    } catch (error) {
+      console.error('Error fetching schemes:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch schemes",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSchemes();
+  }, [language]);
   const translations = {
     en: {
       title: "Government Schemes",
@@ -78,24 +105,47 @@ export const SchemesSection = ({ language }: SchemesSectionProps) => {
         <CardTitle>{t.title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <Accordion type="single" collapsible className="w-full">
-          {t.schemes.map((scheme, index) => (
-            <AccordionItem key={index} value={`item-${index}`}>
-              <AccordionTrigger className="text-left">
-                {scheme.name}
-              </AccordionTrigger>
-              <AccordionContent className="space-y-3">
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {scheme.description}
-                </p>
-                <Button size="sm" className="w-full sm:w-auto">
-                  {t.apply}
-                  <ExternalLink className="ml-2 h-4 w-4" />
-                </Button>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : schemes.length > 0 ? (
+          <Accordion type="single" collapsible className="w-full">
+            {schemes.map((scheme) => {
+              const name = language === 'hi' ? scheme.name_hi :
+                          language === 'gu' ? scheme.name_gu :
+                          scheme.name_en;
+              const description = language === 'hi' ? scheme.description_hi :
+                                 language === 'gu' ? scheme.description_gu :
+                                 scheme.description_en;
+              
+              return (
+                <AccordionItem key={scheme.id} value={scheme.id}>
+                  <AccordionTrigger className="text-left">
+                    {name || scheme.name_en}
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-3">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {description || scheme.description_en}
+                    </p>
+                    {scheme.application_url && (
+                      <Button 
+                        size="sm" 
+                        className="w-full sm:w-auto"
+                        onClick={() => window.open(scheme.application_url, '_blank')}
+                      >
+                        {t.apply}
+                        <ExternalLink className="ml-2 h-4 w-4" />
+                      </Button>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-4">No schemes available</p>
+        )}
       </CardContent>
     </Card>
   );

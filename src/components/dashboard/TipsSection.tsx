@@ -1,12 +1,39 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sprout, Wheat, Droplets, Bug } from "lucide-react";
+import { Sprout, Wheat, Droplets, Bug, Loader2 } from "lucide-react";
+import { apiClient, type Tip } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface TipsSectionProps {
   language: "en" | "hi" | "gu";
 }
 
 export const TipsSection = ({ language }: TipsSectionProps) => {
+  const [tips, setTips] = useState<Tip[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const fetchTips = async () => {
+    setLoading(true);
+    try {
+      const data = await apiClient.getTips(language, undefined, undefined, true);
+      setTips(data);
+    } catch (error) {
+      console.error('Error fetching tips:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch tips",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTips();
+  }, [language]);
   const translations = {
     en: {
       title: "Farming Tips",
@@ -96,31 +123,53 @@ export const TipsSection = ({ language }: TipsSectionProps) => {
         <CardTitle>{t.title}</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto">
-        <div className="grid gap-4">
-          {t.tips.map((tip, index) => {
-            const Icon = tip.icon;
-            return (
-              <Card key={index} className="border-2 hover:border-primary transition-colors">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <Icon className="h-5 w-5 text-primary" />
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : tips.length > 0 ? (
+          <div className="grid gap-4">
+            {tips.map((tip) => {
+              const iconMap: Record<string, any> = {
+                'Sprout': Sprout,
+                'Wheat': Wheat,
+                'Droplets': Droplets,
+                'Bug': Bug,
+              };
+              const Icon = iconMap[tip.icon || 'Sprout'] || Sprout;
+              
+              const title = language === 'hi' ? tip.title_hi :
+                           language === 'gu' ? tip.title_gu :
+                           tip.title_en;
+              const description = language === 'hi' ? tip.description_hi :
+                                 language === 'gu' ? tip.description_gu :
+                                 tip.description_en;
+              
+              return (
+                <Card key={tip.id} className="border-2 hover:border-primary transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <h3 className="font-semibold">{title || tip.title_en}</h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {description || tip.description_en}
+                        </p>
+                        <Button variant="link" className="p-0 h-auto text-primary">
+                          {t.readMore} →
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex-1 space-y-2">
-                      <h3 className="font-semibold">{tip.title}</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {tip.description}
-                      </p>
-                      <Button variant="link" className="p-0 h-auto text-primary">
-                        {t.readMore} →
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-4">No tips available</p>
+        )}
       </CardContent>
     </Card>
   );

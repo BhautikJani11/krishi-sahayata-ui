@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Loader2, AlertCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient, type ChatRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 interface Message {
@@ -20,7 +20,7 @@ export const ChatSection = ({ language }: ChatSectionProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | undefined>(undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -73,31 +73,12 @@ export const ChatSection = ({ language }: ChatSectionProps) => {
 
   const initializeConversation = async () => {
     try {
-      // Create a new conversation
-      const { data, error } = await supabase
-        .from('chat_conversations')
-        .insert({ user_id: 'demo-user', title: 'Farming Chat' })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setConversationId(data.id);
-
       // Add welcome message
       const welcomeMessage: Message = {
         role: "assistant",
         content: `${t.welcome}\n\n${t.topics}`
       };
       setMessages([welcomeMessage]);
-
-      // Store welcome message in database
-      await supabase.from('chat_messages').insert({
-        conversation_id: data.id,
-        role: 'assistant',
-        content: welcomeMessage.content
-      });
-
     } catch (error) {
       console.error('Error initializing conversation:', error);
       toast({
@@ -109,7 +90,7 @@ export const ChatSection = ({ language }: ChatSectionProps) => {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading || !conversationId) return;
+    if (!input.trim() || isLoading) return;
 
     const userMessage: Message = { role: "user", content: input.trim() };
     setMessages(prev => [...prev, userMessage]);
@@ -117,53 +98,27 @@ export const ChatSection = ({ language }: ChatSectionProps) => {
     setIsLoading(true);
 
     try {
-      // Store user message in database
-      await supabase.from('chat_messages').insert({
+      // Call the FastAPI backend
+      const request: ChatRequest = {
+        message: userMessage.content,
         conversation_id: conversationId,
-        role: 'user',
-        content: userMessage.content
-      });
+        user_id: 'demo-user',
+        language: language
+      };
 
-      // Get conversation history for context
-      const { data: history } = await supabase
-        .from('chat_messages')
-        .select('role, content')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+      const response = await apiClient.sendChatMessage(request);
 
-      // Call the AI backend
-      const { data, error } = await supabase.functions.invoke('farming-chat', {
-        body: {
-          messages: history || [],
-          conversationId
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      if (data.code === 'RATE_LIMIT') {
-        throw new Error(t.rateLimit);
-      }
-
-      if (data.code === 'NO_CREDITS') {
-        throw new Error(t.noCredits);
+      // Update conversation ID if it's a new conversation
+      if (!conversationId) {
+        setConversationId(response.conversation_id);
       }
 
       const aiMessage: Message = {
         role: "assistant",
-        content: data.message
+        content: response.message
       };
 
       setMessages(prev => [...prev, aiMessage]);
-
-      // Store AI response in database
-      await supabase.from('chat_messages').insert({
-        conversation_id: conversationId,
-        role: 'assistant',
-        content: aiMessage.content
-      });
 
     } catch (error) {
       console.error('Error sending message:', error);
