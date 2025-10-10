@@ -1,0 +1,17 @@
+{
+  "en": [
+    {"name": "PM-KISAN", "description": "Direct income support of ₹6,000 per year to farmer families. Three installments of ₹2,000 each."},
+    {"name": "Soil Health Card Scheme", "description": "Free soil testing to help farmers improve productivity through balanced use of fertilizers."},
+    {"name": "Pradhan Mantri Fasal Bima Yojana", "description": "Crop insurance scheme providing financial support against crop loss due to natural calamities."}
+  ],
+  "hi": [
+    {"name": "पीएम-किसान", "description": "किसान परिवारों को प्रति वर्ष ₹6,000 की प्रत्यक्ष आय सहायता। ₹2,000 की तीन किस्तें।"},
+    {"name": "मृदा स्वास्थ्य कार्ड योजना", "description": "उर्वरकों के संतुलित उपयोग के माध्यम से किसानों को उत्पादकता में सुधार करने में मदद के लिए मुफ्त मिट्टी परीक्षण।"},
+    {"name": "प्रधानमंत्री फसल बीमा योजना", "description": "प्राकृतिक आपदाओं के कारण फसल नुकसान के खिलाफ वित्तीय सहायता प्रदान करने वाली फसल बीमा योजना।"}
+  ],
+  "gu": [
+    {"name": "પીએમ-કિસાન", "description": "ખેડૂત પરિવારોને દર વર્ષે ₹6,000 ની સીધી આવક સહાય. ₹2,000 ની ત્રણ હપ્તા."},
+    {"name": "માટી આરોગ્ય કાર્ડ યોજના", "description": "ખાતરના સંતુલિત ઉપયોગ દ્વારા ખેડૂતોને ઉત્પાદકતા સુધારવામાં મદદ કરવા માટે મફત માટી પરીક્ષણ."},
+    {"name": "પ્રધાનમંત્રી ફસલ વીમા યોજના", "description": "કુદરતી આફતોને કારણે પાકના નુકસાન સામે નાણાકીય સહાય પૂરી પાડતી પાક વીમા યોજના."}
+  ]
+}
