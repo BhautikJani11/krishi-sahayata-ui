@@ -1,0 +1,20 @@
+{
+  "en": [
+    {"title": "Crop Rotation", "description": "Improve soil health by rotating crops each season.", "category": "soil"},
+    {"title": "Wheat Sowing", "description": "Best practices for winter wheat cultivation and timing.", "category": "wheat"},
+    {"title": "Irrigation Tips", "description": "Efficient water management for better yields.", "category": "water"},
+    {"title": "Pest Control", "description": "Natural and organic pest management techniques.", "category": "pest"}
+  ],
+  "hi": [
+    {"title": "फसल चक्र", "description": "प्रत्येक मौसम में फसलों को घुमाकर मिट्टी के स्वास्थ्य में सुधार करें।", "category": "soil"},
+    {"title": "गेहूं की बुवाई", "description": "सर्दियों में गेहूं की खेती और समय के लिए सर्वोत्तम प्रथाएं।", "category": "wheat"},
+    {"title": "सिंचाई टिप्स", "description": "बेहतर उपज के लिए कुशल जल प्रबंधन।", "category": "water"},
+    {"title": "कीट नियंत्रण", "description": "प्राकृतिक और जैविक कीट प्रबंधन तकनीक।", "category": "pest"}
+  ],
+  "gu": [
+    {"title": "પાક પરિભ્રમણ", "description": "દરેક મોસમમાં પાકોને ફેરવીને જમીનના સ્વાસ્થ્યમાં સુધારો કરો.", "category": "soil"},
+    {"title": "ઘઉંની વાવણી", "description": "શિયાળુ ઘઉંની ખેતી અને સમય માટે શ્રેષ્ઠ પ્રથાઓ.", "category": "wheat"},
+    {"title": "સિંચાઈ ટીપ્સ", "description": "વધુ સારી ઉપજ માટે કાર્યક્ષમ પાણી વ્યવસ્થાપન.", "category": "water"},
+    {"title": "જીવાત નિયંત્રણ", "description": "કુદરતી અને કાર્બનિક જીવાત વ્યવસ્થાપન તકનીકો.", "category": "pest"}
+  ]
+}
