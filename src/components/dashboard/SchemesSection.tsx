@@ -18,13 +18,16 @@ interface SchemesSectionProps {
 export const SchemesSection = ({ language }: SchemesSectionProps) => {
   const [schemes, setSchemes] = useState<Scheme[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const { toast } = useToast();
 
   const fetchSchemes = async () => {
     setLoading(true);
     try {
+      console.log('[Schemes] fetching', { language });
       const data = await apiClient.getSchemes(language, true);
-      setSchemes(data);
+      console.log('[Schemes] fetched', { count: data?.length, sample: data?.[0] });
+      setSchemes(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching schemes:', error);
       toast({
@@ -107,11 +110,15 @@ export const SchemesSection = ({ language }: SchemesSectionProps) => {
       <CardContent>
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span>Loading schemes...</span>
+            </div>
           </div>
         ) : schemes.length > 0 ? (
-          <Accordion type="single" collapsible className="w-full">
-            {schemes.map((scheme) => {
+          <>
+            <Accordion type="single" collapsible className="w-full">
+              {(showAll ? schemes : schemes.slice(0, 2)).map((scheme) => {
               const name = language === 'hi' ? scheme.name_hi :
                           language === 'gu' ? scheme.name_gu :
                           scheme.name_en;
@@ -119,32 +126,40 @@ export const SchemesSection = ({ language }: SchemesSectionProps) => {
                                  language === 'gu' ? scheme.description_gu :
                                  scheme.description_en;
               
-              return (
-                <AccordionItem key={scheme.id} value={scheme.id}>
-                  <AccordionTrigger className="text-left">
-                    {name || scheme.name_en}
-                  </AccordionTrigger>
-                  <AccordionContent className="space-y-3">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {description || scheme.description_en}
-                    </p>
-                    {scheme.application_url && (
-                      <Button 
-                        size="sm" 
-                        className="w-full sm:w-auto"
-                        onClick={() => window.open(scheme.application_url, '_blank')}
-                      >
-                        {t.apply}
-                        <ExternalLink className="ml-2 h-4 w-4" />
-                      </Button>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
-              );
-            })}
-          </Accordion>
+                return (
+                  <AccordionItem key={scheme.id} value={scheme.id}>
+                    <AccordionTrigger className="text-left">
+                      {name || scheme.name_en}
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-3">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {description || scheme.description_en}
+                      </p>
+                      {scheme.application_url && (
+                        <Button 
+                          size="sm" 
+                          className="w-full sm:w-auto"
+                          onClick={() => window.open(scheme.application_url!, '_blank')}
+                        >
+                          {t.apply}
+                          <ExternalLink className="ml-2 h-4 w-4" />
+                        </Button>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+            {schemes.length > 2 && (
+              <div className="flex justify-center mt-4">
+                <Button variant="ghost" onClick={() => setShowAll((s) => !s)} className="text-primary">
+                  {showAll ? 'Show Less' : 'Read More'}
+                </Button>
+              </div>
+            )}
+          </>
         ) : (
-          <p className="text-sm text-muted-foreground text-center py-4">No schemes available</p>
+          <p className="text-sm text-muted-foreground text-center py-4">No data found—try refreshing</p>
         )}
       </CardContent>
     </Card>

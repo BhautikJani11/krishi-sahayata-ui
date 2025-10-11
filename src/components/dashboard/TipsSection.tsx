@@ -12,13 +12,17 @@ interface TipsSectionProps {
 export const TipsSection = ({ language }: TipsSectionProps) => {
   const [tips, setTips] = useState<Tip[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const [season, setSeason] = useState<string | undefined>(undefined);
   const { toast } = useToast();
 
   const fetchTips = async () => {
     setLoading(true);
     try {
-      const data = await apiClient.getTips(language, undefined, undefined, true);
-      setTips(data);
+      console.log('[Tips] fetching', { language, season });
+      const data = await apiClient.getTips(language, undefined, season, true);
+      console.log('[Tips] fetched', { count: data?.length, sample: data?.[0] });
+      setTips(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching tips:', error);
       toast({
@@ -33,7 +37,7 @@ export const TipsSection = ({ language }: TipsSectionProps) => {
 
   useEffect(() => {
     fetchTips();
-  }, [language]);
+  }, [language, season]);
   const translations = {
     en: {
       title: "Farming Tips",
@@ -120,16 +124,33 @@ export const TipsSection = ({ language }: TipsSectionProps) => {
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader>
-        <CardTitle>{t.title}</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>{t.title}</CardTitle>
+          <div className="flex items-center gap-2">
+            <select
+              className="border rounded-md text-sm px-2 py-1 bg-background"
+              value={season || ''}
+              onChange={(e) => setSeason(e.target.value || undefined)}
+            >
+              <option value="">All seasons</option>
+              <option value="rabi">Rabi</option>
+              <option value="kharif">Kharif</option>
+              <option value="zaid">Zaid</option>
+            </select>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span>Loading tips...</span>
+            </div>
           </div>
         ) : tips.length > 0 ? (
           <div className="grid gap-4">
-            {tips.map((tip) => {
+            {(showAll ? tips : tips.slice(0, 2)).map((tip) => {
               const iconMap: Record<string, any> = {
                 'Sprout': Sprout,
                 'Wheat': Wheat,
@@ -157,8 +178,12 @@ export const TipsSection = ({ language }: TipsSectionProps) => {
                         <p className="text-sm text-muted-foreground leading-relaxed">
                           {description || tip.description_en}
                         </p>
-                        <Button variant="link" className="p-0 h-auto text-primary">
-                          {t.readMore} →
+                        <Button 
+                          variant="link" 
+                          className="p-0 h-auto text-primary"
+                          onClick={() => setShowAll((s) => !s)}
+                        >
+                          {showAll ? 'Show Less' : t.readMore} →
                         </Button>
                       </div>
                     </div>
@@ -166,9 +191,16 @@ export const TipsSection = ({ language }: TipsSectionProps) => {
                 </Card>
               );
             })}
+            {tips.length > 2 && (
+              <div className="flex justify-center">
+                <Button variant="ghost" onClick={() => setShowAll((s) => !s)} className="text-primary">
+                  {showAll ? 'Show Less' : 'Read More'}
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground text-center py-4">No tips available</p>
+          <p className="text-sm text-muted-foreground text-center py-4">No data found—try refreshing</p>
         )}
       </CardContent>
     </Card>
