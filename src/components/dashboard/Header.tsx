@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { LogOut, Menu, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface HeaderProps {
   language: "en" | "hi" | "gu";
@@ -47,17 +48,18 @@ export const Header = ({ language, setLanguage, setSidebarOpen }: HeaderProps) =
         </div>
 
         <div className="flex items-center gap-2 md:gap-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const nextLang = language === "en" ? "hi" : language === "hi" ? "gu" : "en";
-              setLanguage(nextLang);
-            }}
-            className="font-medium"
-          >
-            {t.language}
-          </Button>
+          <div className="w-[110px]">
+            <Select value={language} onValueChange={(val) => setLanguage(val as any)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Language" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="hi">हिंदी</SelectItem>
+                <SelectItem value="gu">ગુજરાતી</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <Avatar className="h-8 w-8 md:h-10 md:w-10">
             <AvatarImage src="/placeholder.svg" />
