@@ -38,30 +38,35 @@ export interface WeatherAlert {
   rainfall?: number;
 }
 
+// Backend returns mapped fields based on language parameter
 export interface Scheme {
   id: string;
-  name_en: string;
-  name_hi?: string;
-  name_gu?: string;
-  description_en: string;
-  description_hi?: string;
-  description_gu?: string;
+  name: string;  // Mapped field based on language (name_en/name_hi/name_gu)
+  description: string;  // Mapped field based on language
+  eligibility?: string;  // Mapped field based on language
+  benefits?: string;  // Mapped field based on language
   application_url?: string;
   category?: string;
   is_active: boolean;
+  priority?: number;
+  scheme_metadata?: any;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Tip {
   id: string;
-  title_en: string;
-  title_hi?: string;
-  title_gu?: string;
-  description_en: string;
-  description_hi?: string;
-  description_gu?: string;
+  title: string;  // Mapped field based on language (title_en/title_hi/title_gu)
+  description: string;  // Mapped field based on language
+  content?: string;  // Mapped field based on language
   category?: string;
   icon?: string;
+  season?: string;
   is_active: boolean;
+  priority?: number;
+  tip_metadata?: any;
+  created_at?: string;
+  updated_at?: string;
 }
 
 class APIClient {

@@ -73,14 +73,16 @@ export const ChatSection = ({ language }: ChatSectionProps) => {
 
   const initializeConversation = async () => {
     try {
+      console.log('[ChatSection] Initializing conversation with language:', language);
       // Add welcome message
       const welcomeMessage: Message = {
         role: "assistant",
         content: `${t.welcome}\n\n${t.topics}`
       };
       setMessages([welcomeMessage]);
+      console.log('[ChatSection] Welcome message added');
     } catch (error) {
-      console.error('Error initializing conversation:', error);
+      console.error('[ChatSection] Error initializing conversation:', error);
       toast({
         title: t.error,
         description: error instanceof Error ? error.message : 'Unknown error',
@@ -92,6 +94,7 @@ export const ChatSection = ({ language }: ChatSectionProps) => {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
+    console.log('[ChatSection] Sending message:', input.trim());
     const userMessage: Message = { role: "user", content: input.trim() };
     setMessages(prev => [...prev, userMessage]);
     setInput("");
@@ -106,11 +109,14 @@ export const ChatSection = ({ language }: ChatSectionProps) => {
         language: language
       };
 
+      console.log('[ChatSection] API request:', { ...request, message: request.message.substring(0, 50) + '...' });
       const response = await apiClient.sendChatMessage(request);
+      console.log('[ChatSection] API response received:', { conversation_id: response.conversation_id, message_length: response.message.length });
 
       // Update conversation ID if it's a new conversation
       if (!conversationId) {
         setConversationId(response.conversation_id);
+        console.log('[ChatSection] New conversation ID set:', response.conversation_id);
       }
 
       const aiMessage: Message = {
@@ -121,7 +127,7 @@ export const ChatSection = ({ language }: ChatSectionProps) => {
       setMessages(prev => [...prev, aiMessage]);
 
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('[ChatSection] Error sending message:', error);
       toast({
         title: t.error,
         description: error instanceof Error ? error.message : 'Unknown error',
