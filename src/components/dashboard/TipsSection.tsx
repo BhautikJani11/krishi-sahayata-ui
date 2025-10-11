@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sprout, Wheat, Droplets, Bug, Loader2 } from "lucide-react";
 import { apiClient, type Tip } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface TipsSectionProps {
   language: "en" | "hi" | "gu";
@@ -12,12 +13,15 @@ interface TipsSectionProps {
 export const TipsSection = ({ language }: TipsSectionProps) => {
   const [tips, setTips] = useState<Tip[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const [season, setSeason] = useState<string | undefined>(undefined);
   const { toast } = useToast();
 
   const fetchTips = async () => {
     setLoading(true);
     try {
-      const data = await apiClient.getTips(language, undefined, undefined, true);
+      const data = await apiClient.getTips(language, undefined, season, true);
+      console.log('Tips fetched:', { language, season, count: data.length, sample: data[0] });
       setTips(data);
     } catch (error) {
       console.error('Error fetching tips:', error);
@@ -33,11 +37,12 @@ export const TipsSection = ({ language }: TipsSectionProps) => {
 
   useEffect(() => {
     fetchTips();
-  }, [language]);
+  }, [language, season]);
   const translations = {
     en: {
       title: "Farming Tips",
       readMore: "Read More",
+      season: "Season",
       tips: [
         {
           icon: Sprout,
@@ -64,6 +69,7 @@ export const TipsSection = ({ language }: TipsSectionProps) => {
     hi: {
       title: "खेती टिप्स",
       readMore: "और पढ़ें",
+      season: "मौसम",
       tips: [
         {
           icon: Sprout,
@@ -90,6 +96,7 @@ export const TipsSection = ({ language }: TipsSectionProps) => {
     gu: {
       title: "ખેતી ટીપ્સ",
       readMore: "વધુ વાંચો",
+      season: "સીઝન",
       tips: [
         {
           icon: Sprout,
@@ -116,11 +123,34 @@ export const TipsSection = ({ language }: TipsSectionProps) => {
   };
 
   const t = translations[language];
+  const visibleTips = showAll ? tips : tips.slice(0, 2);
 
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader>
-        <CardTitle>{t.title}</CardTitle>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle>{t.title}</CardTitle>
+          <div className="flex items-center gap-2">
+            <div className="w-[140px]">
+              <Select value={season || "all"} onValueChange={(val) => setSeason(val === "all" ? undefined : val)}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t.season} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t.season}: All</SelectItem>
+                  <SelectItem value="kharif">Kharif</SelectItem>
+                  <SelectItem value="rabi">Rabi</SelectItem>
+                  <SelectItem value="zaid">Zaid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {!loading && tips.length > 2 && (
+              <Button variant="outline" size="sm" onClick={() => setShowAll((s) => !s)}>
+                {showAll ? 'Show Less' : t.readMore}
+              </Button>
+            )}
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto">
         {loading ? (
@@ -129,7 +159,7 @@ export const TipsSection = ({ language }: TipsSectionProps) => {
           </div>
         ) : tips.length > 0 ? (
           <div className="grid gap-4">
-            {tips.map((tip) => {
+            {visibleTips.map((tip) => {
               const iconMap: Record<string, any> = {
                 'Sprout': Sprout,
                 'Wheat': Wheat,
@@ -157,9 +187,7 @@ export const TipsSection = ({ language }: TipsSectionProps) => {
                         <p className="text-sm text-muted-foreground leading-relaxed">
                           {description || tip.description_en}
                         </p>
-                        <Button variant="link" className="p-0 h-auto text-primary">
-                          {t.readMore} →
-                        </Button>
+                        {/* Expansion handled by top-level Read More */}
                       </div>
                     </div>
                   </CardContent>
@@ -168,7 +196,7 @@ export const TipsSection = ({ language }: TipsSectionProps) => {
             })}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground text-center py-4">No tips available</p>
+          <p className="text-sm text-muted-foreground text-center py-4">No data found—try refreshing</p>
         )}
       </CardContent>
     </Card>

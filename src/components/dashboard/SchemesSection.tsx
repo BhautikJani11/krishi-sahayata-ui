@@ -18,12 +18,14 @@ interface SchemesSectionProps {
 export const SchemesSection = ({ language }: SchemesSectionProps) => {
   const [schemes, setSchemes] = useState<Scheme[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const { toast } = useToast();
 
   const fetchSchemes = async () => {
     setLoading(true);
     try {
       const data = await apiClient.getSchemes(language, true);
+      console.log('Schemes fetched:', { language, count: data.length, sample: data[0] });
       setSchemes(data);
     } catch (error) {
       console.error('Error fetching schemes:', error);
@@ -99,10 +101,19 @@ export const SchemesSection = ({ language }: SchemesSectionProps) => {
 
   const t = translations[language];
 
+  const visibleSchemes = showAll ? schemes : schemes.slice(0, 2);
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t.title}</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>{t.title}</CardTitle>
+          {!loading && schemes.length > 2 && (
+            <Button variant="outline" size="sm" onClick={() => setShowAll((s) => !s)}>
+              {showAll ? 'Show Less' : 'Read More'}
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -111,7 +122,7 @@ export const SchemesSection = ({ language }: SchemesSectionProps) => {
           </div>
         ) : schemes.length > 0 ? (
           <Accordion type="single" collapsible className="w-full">
-            {schemes.map((scheme) => {
+            {visibleSchemes.map((scheme) => {
               const name = language === 'hi' ? scheme.name_hi :
                           language === 'gu' ? scheme.name_gu :
                           scheme.name_en;
@@ -144,7 +155,7 @@ export const SchemesSection = ({ language }: SchemesSectionProps) => {
             })}
           </Accordion>
         ) : (
-          <p className="text-sm text-muted-foreground text-center py-4">No schemes available</p>
+          <p className="text-sm text-muted-foreground text-center py-4">No data found—try refreshing</p>
         )}
       </CardContent>
     </Card>

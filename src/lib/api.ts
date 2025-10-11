@@ -124,8 +124,9 @@ class APIClient {
 
   // Schemes endpoints
   async getSchemes(language: string = 'en', activeOnly: boolean = true): Promise<Scheme[]> {
+    // No trailing slash to avoid redirect issues through proxies
     return this.request<Scheme[]>(
-      `/schemes/?language=${language}&active_only=${activeOnly}`,
+      `/schemes?language=${language}&active_only=${activeOnly}`,
       { method: 'GET' }
     );
   }
@@ -141,7 +142,8 @@ class APIClient {
     season?: string,
     activeOnly: boolean = true
   ): Promise<Tip[]> {
-    let url = `/tips/?language=${language}&active_only=${activeOnly}`;
+    // No trailing slash to avoid redirect issues through proxies
+    let url = `/tips?language=${language}&active_only=${activeOnly}`;
     if (category) url += `&category=${category}`;
     if (season) url += `&season=${season}`;
     
