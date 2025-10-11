@@ -124,8 +124,9 @@ class APIClient {
 
   // Schemes endpoints
   async getSchemes(language: string = 'en', activeOnly: boolean = true): Promise<Scheme[]> {
+    // Use query params without trailing slash to avoid redirects
     return this.request<Scheme[]>(
-      `/schemes/?language=${language}&active_only=${activeOnly}`,
+      `/schemes?language=${encodeURIComponent(language)}&active_only=${activeOnly}`,
       { method: 'GET' }
     );
   }
@@ -141,10 +142,11 @@ class APIClient {
     season?: string,
     activeOnly: boolean = true
   ): Promise<Tip[]> {
-    let url = `/tips/?language=${language}&active_only=${activeOnly}`;
-    if (category) url += `&category=${category}`;
-    if (season) url += `&season=${season}`;
-    
+    // Build URL with optional filters; avoid trailing slash
+    let url = `/tips?language=${encodeURIComponent(language)}&active_only=${activeOnly}`;
+    if (category) url += `&category=${encodeURIComponent(category)}`;
+    if (season) url += `&season=${encodeURIComponent(season)}`;
+
     return this.request<Tip[]>(url, { method: 'GET' });
   }
 

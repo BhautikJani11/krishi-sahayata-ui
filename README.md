@@ -1,73 +1,56 @@
-# Welcome to your Lovable project
+# Krishi Sahayata UI
 
-## Project info
+A React + Vite + TypeScript frontend for the Krishi Sahayata platform. It integrates with a FastAPI backend to provide multilingual farming schemes, tips, weather alerts, and an AI chat assistant.
 
-**URL**: https://lovable.dev/projects/1d95d47a-5563-483f-b5ed-2f8bf0459ec3
+## Setup
 
-## How can I edit this code?
+1. Prerequisites
+   - Node.js 18+
+   - npm 9+
+   - FastAPI backend running at `http://localhost:8000`
+   - Postgres seeded with schemes and tips
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/1d95d47a-5563-483f-b5ed-2f8bf0459ec3) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+2. Install deps and run
+```bash
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Vite dev server runs on `http://localhost:8080` and proxies API calls to `http://localhost:8000`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Backend proxy / CORS
+- Frontend calls relative endpoints like `/api/v1/schemes` and `/api/v1/tips`.
+- `vite.config.ts` contains:
+  - Proxy for `/api/v1` -> `http://localhost:8000`
+  - `changeOrigin: true`, `secure: false`
+- Ensure backend allows the origin `http://localhost:8080` in CORS config.
 
-**Use GitHub Codespaces**
+## Key features fixed
+- Relative URLs in `src/lib/api.ts` with robust async/await and error handling.
+- Proper `useEffect` data fetching in `SchemesSection` and `TipsSection` with loading spinners, toasts, and console logs.
+- "Read More / Show Less" toggles for schemes and tips (initial slice(0, 2)).
+- Language switcher dropdown (EN/HI/GU) in header; language passed down and used in fetch queries and UI labels.
+- Tips seasonal filter (Rabi/Kharif/Zaid) applied to backend query param `season`.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Testing the flow
+1. Start backend on `8000` with seeded data (4 schemes and 4 tips; multilingual fields mapped by backend routers).
+2. Start frontend on `8080`.
+3. Visit Dashboard:
+   - Schemes and Tips should load cards with localized names/descriptions.
+   - Read More expands to show all items; Show Less collapses to 2.
+   - Weather alerts list loads and refreshes.
+   - Chat answers questions and may reference tips/schemes via backend AI.
 
-## What technologies are used for this project?
+## Troubleshooting
+- No data shown:
+  - Check browser console logs for `[Schemes]` and `[Tips]` messages and network tab.
+  - Verify requests like `/api/v1/schemes?language=en&active_only=true` return JSON arrays.
+  - Confirm backend CORS allows `http://localhost:8080`.
+- Build issues: run `npm install` then `npm run build`.
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/1d95d47a-5563-483f-b5ed-2f8bf0459ec3) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Scripts
+```bash
+npm run dev      # start Vite with proxy
+npm run build    # production build
+npm run preview  # preview built app
+```
