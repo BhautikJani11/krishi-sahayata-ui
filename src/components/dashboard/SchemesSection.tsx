@@ -7,9 +7,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { ExternalLink, Loader2, AlertCircle } from "lucide-react";
 import { apiClient, type Scheme } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SchemesSectionProps {
   language: "en" | "hi" | "gu";
@@ -17,19 +18,32 @@ interface SchemesSectionProps {
 
 export const SchemesSection = ({ language }: SchemesSectionProps) => {
   const [schemes, setSchemes] = useState<Scheme[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const { toast } = useToast();
 
   const fetchSchemes = async () => {
+    console.log(`[SchemesSection] Fetching schemes for language: ${language}`);
     setLoading(true);
+    setError(null);
+    
     try {
       const data = await apiClient.getSchemes(language, true);
+      console.log(`[SchemesSection] Successfully fetched ${data.length} schemes:`, data);
       setSchemes(data);
+      
+      if (data.length === 0) {
+        console.warn('[SchemesSection] No schemes returned from API');
+        setError('No schemes found. Please try refreshing the page.');
+      }
     } catch (error) {
-      console.error('Error fetching schemes:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('[SchemesSection] Error fetching schemes:', errorMessage, error);
+      setError('Failed to load schemes. Please check your connection and try again.');
       toast({
-        title: "Error",
-        description: "Failed to fetch schemes",
+        title: "Error Loading Schemes",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -38,66 +52,41 @@ export const SchemesSection = ({ language }: SchemesSectionProps) => {
   };
 
   useEffect(() => {
+    console.log(`[SchemesSection] Language changed to: ${language}, re-fetching schemes`);
     fetchSchemes();
   }, [language]);
+
   const translations = {
     en: {
       title: "Government Schemes",
       apply: "Apply Now",
-      schemes: [
-        {
-          name: "PM-KISAN",
-          description: "Direct income support of ₹6,000 per year to farmer families. Three installments of ₹2,000 each.",
-        },
-        {
-          name: "Soil Health Card Scheme",
-          description: "Free soil testing to help farmers improve productivity through balanced use of fertilizers.",
-        },
-        {
-          name: "Pradhan Mantri Fasal Bima Yojana",
-          description: "Crop insurance scheme providing financial support against crop loss due to natural calamities.",
-        },
-      ],
+      showMore: "Show All Schemes",
+      showLess: "Show Less",
+      loading: "Loading schemes...",
+      retry: "Retry",
     },
     hi: {
       title: "सरकारी योजनाएं",
       apply: "अभी आवेदन करें",
-      schemes: [
-        {
-          name: "पीएम-किसान",
-          description: "किसान परिवारों को प्रति वर्ष ₹6,000 की प्रत्यक्ष आय सहायता। ₹2,000 की तीन किस्तें।",
-        },
-        {
-          name: "मृदा स्वास्थ्य कार्ड योजना",
-          description: "उर्वरकों के संतुलित उपयोग के माध्यम से किसानों को उत्पादकता में सुधार करने में मदद के लिए मुफ्त मिट्टी परीक्षण।",
-        },
-        {
-          name: "प्रधानमंत्री फसल बीमा योजना",
-          description: "प्राकृतिक आपदाओं के कारण फसल नुकसान के खिलाफ वित्तीय सहायता प्रदान करने वाली फसल बीमा योजना।",
-        },
-      ],
+      showMore: "सभी योजनाएं दिखाएं",
+      showLess: "कम दिखाएं",
+      loading: "योजनाएं लोड हो रही हैं...",
+      retry: "पुनः प्रयास करें",
     },
     gu: {
       title: "સરકારી યોજનાઓ",
       apply: "હમણાં અરજી કરો",
-      schemes: [
-        {
-          name: "પીએમ-કિસાન",
-          description: "ખેડૂત પરિવારોને દર વર્ષે ₹6,000 ની સીધી આવક સહાય. ₹2,000 ની ત્રણ હપ્તા.",
-        },
-        {
-          name: "માટી આરોગ્ય કાર્ડ યોજના",
-          description: "ખાતરના સંતુલિત ઉપયોગ દ્વારા ખેડૂતોને ઉત્પાદકતા સુધારવામાં મદદ કરવા માટે મફત માટી પરીક્ષણ.",
-        },
-        {
-          name: "પ્રધાનમંત્રી ફસલ વીમા યોજના",
-          description: "કુદરતી આફતોને કારણે પાકના નુકસાન સામે નાણાકીય સહાય પૂરી પાડતી પાક વીમા યોજના.",
-        },
-      ],
+      showMore: "બધી યોજનાઓ બતાવો",
+      showLess: "ઓછું બતાવો",
+      loading: "યોજનાઓ લોડ થઈ રહી છે...",
+      retry: "ફરી પ્રયાસ કરો",
     },
   };
 
   const t = translations[language];
+
+  // Show only 2 schemes initially, expand to all on click
+  const displayedSchemes = showAll ? schemes : schemes.slice(0, 2);
 
   return (
     <Card>
@@ -106,45 +95,119 @@ export const SchemesSection = ({ language }: SchemesSectionProps) => {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
+          <div className="flex flex-col items-center justify-center py-12 space-y-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">{t.loading}</p>
           </div>
+        ) : error ? (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>{error}</span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={fetchSchemes}
+                className="ml-4"
+              >
+                {t.retry}
+              </Button>
+            </AlertDescription>
+          </Alert>
         ) : schemes.length > 0 ? (
-          <Accordion type="single" collapsible className="w-full">
-            {schemes.map((scheme) => {
-              const name = language === 'hi' ? scheme.name_hi :
-                          language === 'gu' ? scheme.name_gu :
-                          scheme.name_en;
-              const description = language === 'hi' ? scheme.description_hi :
-                                 language === 'gu' ? scheme.description_gu :
-                                 scheme.description_en;
-              
-              return (
-                <AccordionItem key={scheme.id} value={scheme.id}>
-                  <AccordionTrigger className="text-left">
-                    {name || scheme.name_en}
-                  </AccordionTrigger>
-                  <AccordionContent className="space-y-3">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {description || scheme.description_en}
-                    </p>
-                    {scheme.application_url && (
-                      <Button 
-                        size="sm" 
-                        className="w-full sm:w-auto"
-                        onClick={() => window.open(scheme.application_url, '_blank')}
-                      >
-                        {t.apply}
-                        <ExternalLink className="ml-2 h-4 w-4" />
-                      </Button>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
-              );
-            })}
-          </Accordion>
+          <div className="space-y-4">
+            <Accordion type="single" collapsible className="w-full">
+              {displayedSchemes.map((scheme) => {
+                console.log(`[SchemesSection] Rendering scheme:`, {
+                  id: scheme.id,
+                  name: scheme.name,
+                  category: scheme.category,
+                });
+                
+                return (
+                  <AccordionItem key={scheme.id} value={scheme.id}>
+                    <AccordionTrigger className="text-left hover:no-underline">
+                      <div className="flex items-start justify-between w-full pr-2">
+                        <span className="font-semibold">{scheme.name}</span>
+                        {scheme.category && (
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full ml-2">
+                            {scheme.category}
+                          </span>
+                        )}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-4 pt-2">
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="text-sm font-medium mb-1">Description</h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {scheme.description}
+                          </p>
+                        </div>
+                        
+                        {scheme.eligibility && (
+                          <div>
+                            <h4 className="text-sm font-medium mb-1">Eligibility</h4>
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              {scheme.eligibility}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {scheme.benefits && (
+                          <div>
+                            <h4 className="text-sm font-medium mb-1">Benefits</h4>
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              {scheme.benefits}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {scheme.application_url && (
+                        <Button 
+                          size="sm" 
+                          className="w-full sm:w-auto"
+                          onClick={() => {
+                            console.log(`[SchemesSection] Opening application URL: ${scheme.application_url}`);
+                            window.open(scheme.application_url, '_blank', 'noopener,noreferrer');
+                          }}
+                        >
+                          {t.apply}
+                          <ExternalLink className="ml-2 h-4 w-4" />
+                        </Button>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+            
+            {schemes.length > 2 && (
+              <Button 
+                variant="outline" 
+                className="w-full mt-4"
+                onClick={() => {
+                  setShowAll(!showAll);
+                  console.log(`[SchemesSection] Toggle show all: ${!showAll}`);
+                }}
+              >
+                {showAll ? t.showLess : `${t.showMore} (${schemes.length - 2} more)`}
+              </Button>
+            )}
+          </div>
         ) : (
-          <p className="text-sm text-muted-foreground text-center py-4">No schemes available</p>
+          <div className="text-center py-12">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-sm text-muted-foreground">No schemes available</p>
+            <Button 
+              variant="link" 
+              onClick={fetchSchemes}
+              className="mt-2"
+            >
+              {t.retry}
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>
