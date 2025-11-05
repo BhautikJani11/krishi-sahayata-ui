@@ -33,6 +33,8 @@ from app.models.scheme import Scheme
 from app.models.tip import Tip
 from app.models.weather import WeatherAlert
 from app.models.conversation import Conversation, Message
+# --- 1. THIS IS THE NEW LINE YOU MUST ADD ---
+from app.models.mandi_price import MandiPriceCache
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
@@ -42,7 +44,10 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         try:
             yield session
-            await session.commit()
+            # --- 2. THIS IS THE CRITICAL FIX ---
+            # We do not commit here. The API endpoint (e.g., chat.py)
+            # is responsible for the commit.
+            # await session.commit() # <-- This line is removed.
         except Exception as e:
             await session.rollback()
             log.error(f"Database session error: {e}")
@@ -62,3 +67,4 @@ async def close_db():
     """Close database connections."""
     await engine.dispose()
     log.info("Database connections closed")
+

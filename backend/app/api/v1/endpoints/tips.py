@@ -37,7 +37,12 @@ async def get_tips(
         if category:
             query = query.where(Tip.category == category)
         
-        if season:
+        # --- THIS IS THE FIX ---
+        # We only apply the season filter if 'season' is provided AND it is not "all".
+        # If 'season' is "all", we want to return all tips, so we add no filter.
+        if season and season != "all":
+            # This finds tips for the specific season (e.g., 'winter') 
+            # OR tips that apply to 'all' seasons.
             query = query.where(or_(Tip.season == season, Tip.season == "all"))
         
         query = query.order_by(Tip.priority.desc(), Tip.created_at.desc())
@@ -71,7 +76,7 @@ async def get_tips(
             }
             mapped_tips.append(mapped)
         
-        log.info(f"Fetched {len(mapped_tips)} tips (language: {language})")
+        log.info(f"Fetched {len(mapped_tips)} tips for language={language}")
         return mapped_tips
         
     except Exception as e:

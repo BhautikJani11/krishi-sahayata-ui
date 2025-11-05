@@ -1,8 +1,7 @@
 /**
  * API client for FastAPI backend
  */
-
-const API_BASE_URL = '/api/v1';  // Relative—uses Vite proxy
+const API_BASE_URL = '/api/v1';
 
 export interface ChatRequest {
   message: string;
@@ -40,12 +39,8 @@ export interface WeatherAlert {
 
 export interface Scheme {
   id: string;
-  name_en: string;
-  name_hi?: string;
-  name_gu?: string;
-  description_en: string;
-  description_hi?: string;
-  description_gu?: string;
+  name: string;
+  description: string;
   application_url?: string;
   category?: string;
   is_active: boolean;
@@ -53,15 +48,23 @@ export interface Scheme {
 
 export interface Tip {
   id: string;
-  title_en: string;
-  title_hi?: string;
-  title_gu?: string;
-  description_en: string;
-  description_hi?: string;
-  description_gu?: string;
+  title: string;
+  description: string;
+  content: string;
   category?: string;
   icon?: string;
   is_active: boolean;
+  season?: string;
+}
+
+export interface MandiPrice {
+  id: string;
+  market: string;
+  commodity: string;
+  min_price: number;
+  max_price: number;
+  modal_price: number;
+  date: string;
 }
 
 class APIClient {
@@ -76,7 +79,6 @@ class APIClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
     const config: RequestInit = {
       ...options,
       headers: {
@@ -92,7 +94,11 @@ class APIClient {
         const error = await response.json().catch(() => ({}));
         throw new Error(error.detail || `HTTP error! status: ${response.status}`);
       }
-      
+
+      if (response.status === 204) {
+        return {} as T;
+      }
+
       return await response.json();
     } catch (error) {
       console.error('API request failed:', error);
@@ -116,23 +122,12 @@ class APIClient {
     });
   }
 
-  async getCurrentWeather(location: string = 'Delhi,IN') {
-    return this.request(`/weather/current?location=${encodeURIComponent(location)}`, {
-      method: 'GET',
-    });
-  }
-
   // Schemes endpoints
   async getSchemes(language: string = 'en', activeOnly: boolean = true): Promise<Scheme[]> {
-    // No trailing slash to avoid redirect issues through proxies
     return this.request<Scheme[]>(
-      `/schemes?language=${language}&active_only=${activeOnly}`,
+      `/schemes/?language=${language}&active_only=${activeOnly}`,
       { method: 'GET' }
     );
-  }
-
-  async getScheme(id: string): Promise<Scheme> {
-    return this.request<Scheme>(`/schemes/${id}`, { method: 'GET' });
   }
 
   // Tips endpoints
@@ -142,16 +137,18 @@ class APIClient {
     season?: string,
     activeOnly: boolean = true
   ): Promise<Tip[]> {
-    // No trailing slash to avoid redirect issues through proxies
-    let url = `/tips?language=${language}&active_only=${activeOnly}`;
+    let url = `/tips/?language=${language}&active_only=${activeOnly}`;
     if (category) url += `&category=${category}`;
-    if (season) url += `&season=${season}`;
-    
+    if (season && season !== 'all') url += `&season=${season}`;
     return this.request<Tip[]>(url, { method: 'GET' });
   }
 
-  async getTip(id: string): Promise<Tip> {
-    return this.request<Tip>(`/tips/${id}`, { method: 'GET' });
+  // Mandi endpoints
+  async getMandiPrices(commodity: string): Promise<MandiPrice[]> {
+    return this.request<MandiPrice[]>(
+      `/mandi/?commodity=${encodeURIComponent(commodity)}`,
+      { method: 'GET' }
+    );
   }
 
   // Health check

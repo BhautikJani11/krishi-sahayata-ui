@@ -6,12 +6,13 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from contextlib import asynccontextmanager
-from fastapi.middleware.cors import CORSMiddleware  # Add this import
+from fastapi.middleware.cors import CORSMiddleware
 
 from .core.config import settings
 from .core.logging import log
 from .db.base import init_db, close_db
 from .api.v1 import api_router
+from .api.v1.endpoints import mandi as mandi_router
 from .middleware import (
     error_handler_middleware,
     validation_exception_handler,
@@ -51,6 +52,7 @@ app = FastAPI(
     - 🌦️ **Weather**: Real-time weather alerts and forecasts
     - 📋 **Schemes**: Government schemes and subsidies
     - 💡 **Tips**: Farming tips and best practices
+    - 💰 **Mandi Prices**: Live market prices from data.gov.in
     
     Features:
     - Multilingual support (English, Hindi, Gujarati)
@@ -80,9 +82,9 @@ app.middleware("http")(error_handler_middleware)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(SQLAlchemyError, database_exception_handler)
 
-# Include API router
+# Include API routers
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
-
+app.include_router(mandi_router.router, prefix=settings.API_V1_PREFIX, tags=["Mandi"])  # Integrated mandi with tags
 
 @app.get("/", tags=["Health"])
 async def root():
@@ -116,7 +118,8 @@ async def api_health_check():
         "services": {
             "database": "connected",
             "ai": settings.AI_PROVIDER,
-            "weather": "available" if settings.WEATHER_API_KEY else "mock"
+            "weather": "available" if settings.WEATHER_API_KEY else "mock",
+            "mandi": "available" if settings.DATA_GOV_API_KEY else "mock"
         }
     }
 

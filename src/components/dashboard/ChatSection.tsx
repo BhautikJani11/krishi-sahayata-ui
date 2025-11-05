@@ -3,9 +3,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Loader2, AlertCircle } from "lucide-react";
+import { Send, Loader2, Mic, Volume2, StopCircle } from "lucide-react"; // <-- Using StopCircle
 import { apiClient, type ChatRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+
+// --- Browser Speech API Types ---
+interface SpeechRecognition extends EventTarget {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: (event: any) => void;
+  onend: () => void;
+  onerror: (event: any) => void;
+  start: () => void;
+  stop: () => void;
+}
+declare global {
+  interface Window {
+    SpeechRecognition: { new (): SpeechRecognition };
+    webkitSpeechRecognition: { new (): SpeechRecognition };
+  }
+}
+// --- End of Types ---
 
 interface Message {
   role: "user" | "assistant";
@@ -16,91 +35,223 @@ interface ChatSectionProps {
   language: "en" | "hi" | "gu";
 }
 
+const translationsData = {
+  en: {
+    title: "AI Farming Assistant",
+    placeholder: "Ask or press the mic...",
+    send: "Send",
+    welcome: "Hello! I'm your AI farming expert. Ask me anything about:",
+    topics: "• Crop selection and planting times\n• Soil health and fertilizers\n• Irrigation and water management\n• Pest control and diseases\n• Government schemes and subsidies\n• Weather-based farming advice\n• Modern farming techniques",
+    error: "Failed to get response",
+    thinking: "Thinking...",
+    micError: "Mic error or permission denied",
+    micNotSupported: "Voice input is not supported in this browser.",
+  },
+  hi: {
+    title: "AI खेती सहायक",
+    placeholder: "पूछें या माइक दबाएं...",
+    send: "भेजें",
+    welcome: "नमस्ते! मैं आपका AI खेती विशेषज्ञ हूं। मुझसे कुछ भी पूछें:",
+    topics: "• फसल चयन और रोपण समय\n• मिट्टी स्वास्थ्य और उर्वरक\n• सिंचाई और जल प्रबंधन\n• कीट नियंत्रण और रोग\n• सरकारी योजनाएं और सब्सिडी\n• मौसम आधारित खेती सलाह\n• आधुनिक खेती तकनीक",
+    error: "प्रतिक्रिया प्राप्त करने में विफल",
+    thinking: "सोच रहा हूँ...",
+    micError: "माइक त्रुटि या अनुमति नहीं मिली",
+    micNotSupported: "इस ब्राउज़र में वॉयस इनपुट समर्थित नहीं है।",
+  },
+  gu: {
+    title: "AI ખેતી સહાયક",
+    placeholder: "પૂછો અથવા માઇક દબાવો...",
+    send: "મોકલો",
+    welcome: "નમસ્તે! હું તમારો AI ખેતી નિષ્ણાત છું. મને કંઈપણ પૂછો:",
+    topics: "• પાક પસંદગી અને વાવેતર સમય\n• જમીન સ્વાસ્થ્ય અને ખાતર\n• સિંચાઈ અને પાણી સંચાલન\n• જીવાત નિયંત્રણ અને રોગો\n• સરકારી યોજનાઓ અને સબસિડી\n• હવામાન આધારિત ખેતી સલાહ\n• આધુનિક ખેતી તકનીક",
+    error: "પ્રતિસાદ મેળવવામાં નિષ્ફળ",
+    thinking: "વિચાર ચાલી રહ્યો છે...",
+    micError: "માઇક ભૂલ અથવા પરવાનગી નકારી",
+    micNotSupported: "આ બ્રાઉઝરમાં વૉઇસ ઇનપુટ સપોર્ટેડ નથી.",
+  },
+};
+
+const speechLangMap: Record<string, string> = {
+  en: 'en-US',
+  hi: 'hi-IN',
+  gu: 'gu-IN',
+};
+
 export const ChatSection = ({ language }: ChatSectionProps) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const savedHistory = localStorage.getItem("chatHistory");
+      return savedHistory ? JSON.parse(savedHistory) : [];
+    } catch (error) {
+      console.warn("Could not parse chat history from localStorage", error);
+      return [];
+    }
+  });
+  
+  const [conversationId, setConversationId] = useState<string | undefined>(
+    () => localStorage.getItem("chatConversationId") || undefined
+  );
+  
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [conversationId, setConversationId] = useState<string | undefined>(undefined);
+  const [isListening, setIsListening] = useState(false);
+  
+  // This state now tracks the index of the message that is *actively speaking*
+  const [speakingMessageIndex, setSpeakingMessageIndex] = useState<number | null>(null);
+  
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const { toast } = useToast();
-
-  const translations = {
-    en: {
-      title: "AI Farming Assistant",
-      placeholder: "Ask about crops, weather, schemes, pests...",
-      send: "Send",
-      welcome: "Hello! I'm your AI farming expert. Ask me anything about:",
-      topics: "• Crop selection and planting times\n• Soil health and fertilizers\n• Irrigation and water management\n• Pest control and diseases\n• Government schemes and subsidies\n• Weather-based farming advice\n• Modern farming techniques",
-      error: "Failed to get response",
-      rateLimit: "Too many requests. Please wait a moment.",
-      noCredits: "AI credits exhausted. Please add credits.",
-    },
-    hi: {
-      title: "AI खेती सहायक",
-      placeholder: "फसल, मौसम, योजनाओं, कीटों के बारे में पूछें...",
-      send: "भेजें",
-      welcome: "नमस्ते! मैं आपका AI खेती विशेषज्ञ हूं। मुझसे कुछ भी पूछें:",
-      topics: "• फसल चयन और रोपण समय\n• मिट्टी स्वास्थ्य और उर्वरक\n• सिंचाई और जल प्रबंधन\n• कीट नियंत्रण और रोग\n• सरकारी योजनाएं और सब्सिडी\n• मौसम आधारित खेती सलाह\n• आधुनिक खेती तकनीक",
-      error: "प्रतिक्रिया प्राप्त करने में विफल",
-      rateLimit: "बहुत सारे अनुरोध। कृपया एक पल प्रतीक्षा करें।",
-      noCredits: "AI क्रेडिट समाप्त। कृपया क्रेडिट जोड़ें।",
-    },
-    gu: {
-      title: "AI ખેતી સહાયક",
-      placeholder: "પાક, હવામાન, યોજનાઓ, જીવાતો વિશે પૂછો...",
-      send: "મોકલો",
-      welcome: "નમસ્તે! હું તમારો AI ખેતી નિષ્ણાત છું. મને કંઈપણ પૂછો:",
-      topics: "• પાક પસંદગી અને વાવેતર સમય\n• જમીન સ્વાસ્થ્ય અને ખાતર\n• સિંચાઈ અને પાણી સંચાલન\n• જીવાત નિયંત્રણ અને રોગો\n• સરકારી યોજનાઓ અને સબસિડી\n• હવામાન આધારિત ખેતી સલાહ\n• આધુનિક ખેતી તકનીક",
-      error: "પ્રતિસાદ મેળવવામાં નિષ્ફળ",
-      rateLimit: "ઘણી બધી વિનંતીઓ. કૃપા કરીને થોડી રાહ જુઓ.",
-      noCredits: "AI ક્રેડિટ સમાપ્ત. કૃપા કરીને ક્રેડિટ ઉમેરો.",
-    },
-  };
-
-  const t = translations[language];
+  const t = translationsData[language || 'en'];
 
   useEffect(() => {
-    // Initialize conversation
-    initializeConversation();
-  }, []);
+    if (conversationId) localStorage.setItem("chatConversationId", conversationId);
+    if (messages.length > 1) {
+      localStorage.setItem("chatHistory", JSON.stringify(messages));
+    } else if (messages.length === 0) {
+      localStorage.removeItem("chatHistory");
+      localStorage.removeItem("chatConversationId");
+    }
+  }, [conversationId, messages]);
 
   useEffect(() => {
-    // Auto-scroll to bottom when new messages arrive
+    const welcomeMessage: Message = {
+      role: "assistant",
+      content: `${t.welcome}\n\n${t.topics}`
+    };
+    
+    setMessages(currentMessages => {
+      if (currentMessages.length === 0) {
+        return [welcomeMessage];
+      }
+      if (currentMessages.length > 0 && currentMessages[0].role === 'assistant' && currentMessages[0].content.includes("AI farming expert")) {
+        const newMessages = [...currentMessages];
+        newMessages[0] = welcomeMessage;
+        return newMessages;
+      }
+      return currentMessages;
+    });
+  }, [language, t.welcome, t.topics]);
+
+  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
-  const initializeConversation = async () => {
+  // --- SIMPLIFIED Text-to-Speech Function (Stop/Replay) ---
+  const speakText = (text: string, index: number) => {
     try {
-      // Add welcome message
-      const welcomeMessage: Message = {
-        role: "assistant",
-        content: `${t.welcome}\n\n${t.topics}`
+      const synth = window.speechSynthesis;
+      if (!synth) {
+        console.warn("Browser does not support speech synthesis.");
+        return;
+      }
+
+      const isCurrentlySpeakingThis = speakingMessageIndex === index;
+
+      // Stop any and all speech
+      synth.cancel();
+
+      // Case 1: User clicked the 'Stop' button (on the message that was playing)
+      if (isCurrentlySpeakingThis) {
+        setSpeakingMessageIndex(null);
+        return;
+      } 
+      
+      // Case 2: User clicked the 'Play' button
+      const newUtterance = new SpeechSynthesisUtterance(text);
+      newUtterance.lang = speechLangMap[language || 'en'];
+      
+      // This is the KEY: This automatically resets the state when speech finishes
+      newUtterance.onend = () => {
+        setSpeakingMessageIndex(null);
       };
-      setMessages([welcomeMessage]);
-    } catch (error) {
-      console.error('Error initializing conversation:', error);
-      toast({
-        title: t.error,
-        description: error instanceof Error ? error.message : 'Unknown error',
-        variant: "destructive",
-      });
+      newUtterance.onerror = (e) => {
+        console.error("Error during speech synthesis:", e);
+        setSpeakingMessageIndex(null);
+      };
+      
+      // Start speaking
+      synth.speak(newUtterance);
+      setSpeakingMessageIndex(index);
+      
+    } catch (e) {
+      console.error("Error speaking text:", e);
+      setSpeakingMessageIndex(null);
     }
   };
+  // --- END OF UPDATE ---
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  useEffect(() => {
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognitionAPI) {
+      const recognitionInstance = new SpeechRecognitionAPI();
+      recognitionInstance.continuous = false;
+      recognitionInstance.interimResults = false;
+      
+      recognitionInstance.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(transcript);
+        handleSend(transcript);
+      };
+      
+      recognitionInstance.onend = () => {
+        setIsListening(false);
+      };
+      
+      recognitionInstance.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error);
+        toast({ title: t.micError, description: event.error, variant: "destructive" });
+        setIsListening(false);
+      };
+      
+      recognitionRef.current = recognitionInstance;
+    } else {
+      console.warn("Browser does not support speech recognition.");
+    }
+  }, [language, t.micError, toast]);
 
-    const userMessage: Message = { role: "user", content: input.trim() };
-    setMessages(prev => [...prev, userMessage]);
+  const handleMicClick = () => {
+    if (isLoading || isListening) return;
+
+    if (!recognitionRef.current) {
+      toast({ title: t.micNotSupported, variant: "destructive" });
+      return;
+    }
+    
+    try {
+      // Stop any speech before listening
+      window.speechSynthesis.cancel();
+      setSpeakingMessageIndex(null);
+      
+      recognitionRef.current.lang = speechLangMap[language || 'en'];
+      recognitionRef.current.start();
+      setIsListening(true);
+    } catch (e) {
+      console.error("Error starting mic:", e);
+      toast({ title: t.micError, variant: "destructive" });
+    }
+  };
+  
+  const handleSend = async (textOverride?: string) => {
+    const messageContent = textOverride || input.trim();
+    
+    if (!messageContent || isLoading) return;
+
+    // Stop any speech before sending
+    window.speechSynthesis.cancel();
+    setSpeakingMessageIndex(null);
+
     setInput("");
     setIsLoading(true);
 
+    const userMessage: Message = { role: "user", content: messageContent };
+    setMessages(prev => [...prev, userMessage]);
+
     try {
-      // Call the FastAPI backend
       const request: ChatRequest = {
-        message: userMessage.content,
+        message: messageContent,
         conversation_id: conversationId,
         user_id: 'demo-user',
         language: language
@@ -108,8 +259,7 @@ export const ChatSection = ({ language }: ChatSectionProps) => {
 
       const response = await apiClient.sendChatMessage(request);
 
-      // Update conversation ID if it's a new conversation
-      if (!conversationId) {
+      if (!conversationId && response.conversation_id) {
         setConversationId(response.conversation_id);
       }
 
@@ -119,6 +269,10 @@ export const ChatSection = ({ language }: ChatSectionProps) => {
       };
 
       setMessages(prev => [...prev, aiMessage]);
+      
+      // Speak the response *after* it's in the state
+      const newIndex = messages.length + 1; // The index it *will* have
+      speakText(response.message, newIndex);
 
     } catch (error) {
       console.error('Error sending message:', error);
@@ -127,9 +281,6 @@ export const ChatSection = ({ language }: ChatSectionProps) => {
         description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
-
-      // Remove the user message if request failed
-      setMessages(prev => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
     }
@@ -146,32 +297,54 @@ export const ChatSection = ({ language }: ChatSectionProps) => {
       <CardContent className="flex-1 flex flex-col p-0">
         <ScrollArea className="flex-1 p-4" ref={scrollRef}>
           <div className="space-y-4">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex ${
-                  message.role === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
+            {messages.map((message, index) => {
+              // --- UPDATED: Smart icon logic ---
+              const isThisMessageSpeaking = speakingMessageIndex === index;
+              
+              return (
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-foreground border"
+                  key={index}
+                  className={`flex ${
+                    message.role === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
-                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                    {message.content}
+                  <div
+                    className={`relative group max-w-[85%] rounded-2xl px-4 py-3 ${
+                      message.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground border"
+                    }`}
+                  >
+                    <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                      {message.content}
+                    </div>
+                    
+                    {/* --- UPDATED: Replay/Stop Audio Button --- */}
+                    {message.role === 'assistant' && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => speakText(message.content, index)}
+                      >
+                        {isThisMessageSpeaking ? (
+                          <StopCircle className="h-4 w-4 text-red-500" />
+                        ) : (
+                          <Volume2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
+            
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-muted text-foreground border rounded-2xl px-4 py-3">
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm">Thinking...</span>
+                    <span className="text-sm">{t.thinking}</span>
                   </div>
                 </div>
               </div>
@@ -186,13 +359,25 @@ export const ChatSection = ({ language }: ChatSectionProps) => {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
               placeholder={t.placeholder}
-              disabled={isLoading}
+              disabled={isLoading || isListening}
               className="flex-1"
             />
-            <Button 
-              onClick={handleSend} 
+            <Button
+              onClick={handleMicClick}
               size="icon"
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading}
+              variant={isListening ? "destructive" : "outline"}
+            >
+              {isListening ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Mic className="h-4 w-4" />
+              )}
+            </Button>
+            <Button 
+              onClick={() => handleSend()}
+              size="icon"
+              disabled={isLoading || isListening || !input.trim()}
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -206,3 +391,4 @@ export const ChatSection = ({ language }: ChatSectionProps) => {
     </Card>
   );
 };
+

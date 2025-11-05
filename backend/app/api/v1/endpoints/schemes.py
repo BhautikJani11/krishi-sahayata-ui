@@ -30,8 +30,9 @@ async def get_schemes(
     try:
         query = select(Scheme)
         
-        if active_only:
-            query = query.where(Scheme.is_active == True)
+        # Temporarily disable to fetch all for debug; re-enable later
+        # if active_only:
+        #     query = query.where(Scheme.is_active == True)
         
         if category:
             query = query.where(Scheme.category == category)
@@ -41,7 +42,7 @@ async def get_schemes(
         result = await db.execute(query)
         schemes = result.scalars().all()
         
-        # Multilingual mapping (select language-specific fields, fallback to 'en')
+        # Multilingual mapping with fallback
         lang_map = {
             'en': {'name': 'name_en', 'description': 'description_en', 'eligibility': 'eligibility_en', 'benefits': 'benefits_en'},
             'hi': {'name': 'name_hi', 'description': 'description_hi', 'eligibility': 'eligibility_hi', 'benefits': 'benefits_hi'},

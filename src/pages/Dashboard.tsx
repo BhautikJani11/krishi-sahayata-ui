@@ -6,6 +6,10 @@ import { WeatherSection } from "@/components/dashboard/WeatherSection";
 import { SchemesSection } from "@/components/dashboard/SchemesSection";
 import { TipsSection } from "@/components/dashboard/TipsSection";
 
+// --- FIX 1: Correct the import path ---
+import { MandiSection } from "@/components/dashboard/MandiSection"; 
+
+
 const Dashboard = () => {
   const [language, setLanguage] = useState<"en" | "hi" | "gu">("en");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -35,10 +39,14 @@ const Dashboard = () => {
                 <SchemesSection language={language} />
               </div>
               
-              {/* Right Column - Tips */}
-              <div className="lg:col-span-1">
+              {/* --- FIX 2: Add MandiSection and stack it with TipsSection --- */}
+              {/* Right Column - Mandi & Tips */}
+              <div className="lg:col-span-1 space-y-6">
+                <MandiSection language={language} />
                 <TipsSection language={language} />
               </div>
+              {/* --- END OF FIX --- */}
+
             </div>
           </div>
         </main>
